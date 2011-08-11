@@ -73,6 +73,7 @@
     <Compile Include="Views\BookDetailsView.xaml.cs">
       <DependentUpon>BookDetailsView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\BookImageConverter.cs" />
     <Compile Include="Views\SearchView.xaml.cs">
       <DependentUpon>SearchView.xaml</DependentUpon>
     </Compile>

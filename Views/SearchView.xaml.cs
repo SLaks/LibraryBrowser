@@ -21,10 +21,13 @@ namespace LibraryBrowser.Views {
 			InitializeComponent();
 		}
 
-		private void ListView_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
-			var source = (FrameworkElement)e.OriginalSource;
-			var book = (Model.BookSummary)source.DataContext;
-			this.FindAncestor<MainWindow>().OpenBook(book);
+
+		private void Book_MouseUp(object sender, MouseButtonEventArgs e) {
+			if (e.ChangedButton == MouseButton.Left && e.ClickCount >= 2) {
+				var source = (FrameworkElement)e.OriginalSource;
+				var book = (Model.BookSummary)source.DataContext;
+				this.FindAncestor<MainWindow>().OpenBook(book);
+			}
 		}
 	}
 }
