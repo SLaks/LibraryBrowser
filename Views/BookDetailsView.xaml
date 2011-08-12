@@ -9,10 +9,21 @@
 	<DockPanel>
 		<Image DockPanel.Dock="Left" StretchDirection="DownOnly" VerticalAlignment="Top"
 			   Source="{Binding Summary.ISBN, Converter={x:Static local:BookImageConverter.Large}}" />
-		<StackPanel>
-			<TextBlock FontSize="24" FontWeight="Bold" Text="{Binding Summary.Title}" />
-			<TextBlock FontStyle="Italic" Text="{Binding Summary.Author}" />
+		<DockPanel>
+			<TextBlock DockPanel.Dock="Top" FontSize="24" FontWeight="Bold" Text="{Binding Summary.Title}" />
+			<TextBlock DockPanel.Dock="Top" FontStyle="Italic" Text="{Binding Summary.Author}" />
+
 			<ListView ItemsSource="{Binding Locations}">
+				<ListView.ItemContainerStyle>
+					<Style>
+						<Style.Triggers>
+							<DataTrigger Binding="{Binding Status}" Value="Available">
+								<Setter Property="TextBlock.Foreground" Value="Green" />
+								<Setter Property="TextBlock.FontWeight" Value="Bold" />
+							</DataTrigger>
+						</Style.Triggers>
+					</Style>
+				</ListView.ItemContainerStyle>
 				<ListView.View>
 					<GridView>
 						<GridViewColumn Header="Library" DisplayMemberBinding="{Binding Library}" />
@@ -22,6 +33,6 @@
 					</GridView>
 				</ListView.View>
 			</ListView>
-		</StackPanel>
+		</DockPanel>
 	</DockPanel>
 </UserControl>
