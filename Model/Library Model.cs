@@ -6,7 +6,7 @@ using SLaks.Progression;
 using System.Collections.ObjectModel;
 
 namespace LibraryBrowser.Model {
-	public interface ILibrarySearcher {
+	public interface ILibraryClient {
 		void DoSearch(string query, LoadingContext<BookSummary> context);
 
 		//TODO: Library info

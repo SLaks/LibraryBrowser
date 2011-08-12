@@ -107,7 +107,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Model\Bccls\BcclsSearcher.cs" />
+    <Compile Include="Model\BcclsClient.cs" />
     <Compile Include="Model\BookSearcher.cs" />
     <Compile Include="Model\Http.cs" />
     <Compile Include="Model\Library Model.cs" />
@@ -146,6 +146,7 @@
     <Resource Include="Images\Book16.png" />
     <Resource Include="Images\SearchResults16.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

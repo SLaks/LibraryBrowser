@@ -9,12 +9,12 @@ using System.ComponentModel;
 
 namespace LibraryBrowser.Model {
 	class BookSearcher {
-		public BookSearcher(params ILibrarySearcher[] libraries) : this((IEnumerable<ILibrarySearcher>)libraries) { }
-		public BookSearcher(IEnumerable<ILibrarySearcher> libraries) {
-			Libraries = new ReadOnlyCollection<ILibrarySearcher>(libraries.ToList());
+		public BookSearcher(params ILibraryClient[] libraries) : this((IEnumerable<ILibraryClient>)libraries) { }
+		public BookSearcher(IEnumerable<ILibraryClient> libraries) {
+			Libraries = new ReadOnlyCollection<ILibraryClient>(libraries.ToList());
 		}
 
-		public ReadOnlyCollection<ILibrarySearcher> Libraries { get; private set; }
+		public ReadOnlyCollection<ILibraryClient> Libraries { get; private set; }
 
 		public LoadingCollection<BookSummary> DoSearch(string query, IProgressReporter progress) {
 			var retVal = new LoadingCollection<BookSummary>();

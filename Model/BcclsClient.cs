@@ -8,11 +8,10 @@ using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 
-namespace LibraryBrowser.Model.Bccls {
-	public class BcclsSearcher : ILibrarySearcher {
+namespace LibraryBrowser.Model {
+	public class BcclsClient : ILibraryClient {
 		//index=default&record_screen=record.html&
 		//index=default&query=tamuli&servers=1home&record_screen=record.html&sort_by=none&setting_key=BCCLS&highlightorlimit=Highlight+for&whichlibrary=All+Libraries&format_filter=ALL&location_filter=ALL&date_filter=all&language_filter=all&hitlist_screen=hitlistPF.html
-
 
 		static string GetSearchUrl(string query) {
 			return @"http://web2.bccls.org/web2/tramp2.exe/do_keyword_search/log_in?servers=1home&setting_key=BCCLS&query="

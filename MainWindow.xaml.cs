@@ -26,7 +26,7 @@ namespace LibraryBrowser {
 			OpenSearch(searchBox.Text);
 		}
 
-		static readonly Model.BookSearcher searcher = new Model.BookSearcher(new Model.Bccls.BcclsSearcher());
+		static readonly Model.BookSearcher searcher = new Model.BookSearcher(new Model.BcclsClient());
 		public void OpenSearch(string query) {
 			var progress = new ProgressModel();
 			var results = searcher.DoSearch(query, progress);
