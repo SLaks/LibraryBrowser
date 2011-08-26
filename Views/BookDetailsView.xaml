@@ -4,18 +4,28 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
 			 xmlns:local="clr-namespace:LibraryBrowser.Views"
+			 xmlns:controls="clr-namespace:LibraryBrowser.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
 	<DockPanel>
-		<Image DockPanel.Dock="Left" StretchDirection="DownOnly" VerticalAlignment="Top"
+		<Image DockPanel.Dock="Left" StretchDirection="DownOnly" VerticalAlignment="Top" Margin="0 0 3 0"
 			   Source="{Binding Summary.ISBN, Converter={x:Static local:BookImageConverter.Large}}" />
 		<DockPanel>
 			<TextBlock DockPanel.Dock="Top" FontSize="24" FontWeight="Bold" Text="{Binding Summary.Title}" />
 			<TextBlock DockPanel.Dock="Top" FontStyle="Italic" Text="{Binding Summary.Author}" />
 
-			<ListView ItemsSource="{Binding Locations}">
+			<ListView ItemsSource="{Binding Locations}" Margin="0 5 0 0">
 				<ListView.ItemContainerStyle>
-					<Style>
+					<Style TargetType="ListViewItem">
+						<Setter Property="ToolTipService.ShowDuration" Value="300000" />
+						<Setter Property="ToolTip">
+							<Setter.Value>
+								<ToolTip Placement="Right">
+									<controls:LoadingContentPresenter Content="{Binding LibraryInfo}" ContentTemplate="{StaticResource LibraryDetailTip}" />
+								</ToolTip>
+							</Setter.Value>
+						</Setter>
+
 						<Style.Triggers>
 							<DataTrigger Binding="{Binding Status}" Value="Available">
 								<Setter Property="TextBlock.Foreground" Value="Green" />

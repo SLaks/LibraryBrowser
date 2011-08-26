@@ -15,7 +15,7 @@ namespace LibraryBrowser {
 		}
 
 
-		public static string CleanTest(this HtmlNode node) {
+		public static string CleanText(this HtmlNode node) {
 			return HtmlEntity.DeEntitize(node.InnerText).Trim();
 		}
 	}

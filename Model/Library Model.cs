@@ -4,12 +4,24 @@ using System.Linq;
 using System.Text;
 using SLaks.Progression;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 
 namespace LibraryBrowser.Model {
+	public class LibraryInfo {
+		public string FullTitle { get; protected set; }
+		public string Name { get; protected set; }
+		public string PhotoUrl { get; protected set; }
+		public string Address { get; protected set; }
+		public string Phone { get; protected set; }
+
+		public string DetailsUrl { get; protected set; }
+	}
+
 	public interface ILibraryClient {
 		void DoSearch(string query, LoadingContext<BookSummary> context);
 
 		//TODO: Library info
+		Task<LibraryInfo> GetLibrary(string name);
 	}
 
 	 public abstract class LoadingContext<T> {
@@ -42,16 +54,21 @@ namespace LibraryBrowser.Model {
 		public ReadOnlyCollection<BookLocation> Locations { get; private set; }
 	}
 	public class BookLocation {
-		public BookLocation(string library, string material, string identifier, string status) {
+		readonly Func<Task<LibraryInfo>> detailGetter;
+		public BookLocation(string library, string material, string identifier, string status, Func<Task<LibraryInfo>> detailGetter) {
 			Library = library;
 			Material = material;
 			Identifier = identifier;
 			Status = status;
+
+			this.detailGetter = detailGetter;
 		}
 
 		public string Library { get; private set; }
 		public string Material { get; private set; }
 		public string Identifier { get; private set; }
 		public string Status { get; private set; }
+
+		public Task<LibraryInfo> LibraryInfo { get { return detailGetter(); } }
 	}
 }

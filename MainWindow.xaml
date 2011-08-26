@@ -1,7 +1,7 @@
 ﻿<Window x:Class="LibraryBrowser.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Library Browser" Height="350" Width="525">
+        Title="Library Browser" Height="500" Width="700">
 	<Window.Resources>
 		<Style TargetType="TabItem">
 			<EventSetter Event="MouseUp" Handler="TabItem_MouseUp" />

@@ -7,6 +7,8 @@ using System.Net;
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace LibraryBrowser.Model {
 	public class BcclsClient : ILibraryClient {
@@ -17,6 +19,56 @@ namespace LibraryBrowser.Model {
 			return @"http://web2.bccls.org/web2/tramp2.exe/do_keyword_search/log_in?servers=1home&setting_key=BCCLS&query="
 				   + Uri.EscapeDataString(query);
 		}
+
+		#region Library Info
+		public Task<LibraryInfo> GetLibrary(string name) { return null; }
+
+		static readonly ConcurrentDictionary<string, Task<LibraryInfo>> libraries = new ConcurrentDictionary<string, Task<LibraryInfo>>(StringComparer.OrdinalIgnoreCase);
+
+		static Task<LibraryInfo> GetLibrary(string name, string url) {
+			return libraries.GetOrAdd(
+				name,
+				k => Http.HtmlTask<LibraryInfo>(new Uri(url), doc => new BcclsLibrary(name, url, doc))
+			);
+		}
+
+		class BcclsLibrary : LibraryInfo {
+			static readonly Regex markerHtmlParser = new Regex(@"^var markerHTML = ""\<B\>[^<>]+\</B\>\<BR\>(.+?)"";$", RegexOptions.Multiline);
+			static readonly Regex phoneMatcher = new Regex(@"^(?:Phone:\s+)?(\(\d{3}\)\s*\d{3}-\d{4})", RegexOptions.IgnoreCase);
+
+			public BcclsLibrary(string name, string url, HtmlDocument doc) {
+				DetailsUrl = url;
+				Name = name;
+
+				var mapScript = doc.DocumentNode.Descendants("script")
+								   .Select(s => markerHtmlParser.Match(s.InnerText))
+								   .First(m => m.Success);
+
+				Address = mapScript.Groups[1].Value.Replace("<BR>", Environment.NewLine);
+
+				var image = doc.DocumentNode.Descendants("img")
+							   .FirstOrDefault(img => img.GetAttributeValue("src", "").StartsWith("/members"));
+				HtmlNode detailsSection;
+				if (image != null) {
+					PhotoUrl = "http://www.bccls.org" + image.GetAttributeValue("src", "");
+					detailsSection = image.ParentNode.NextSibling.NextSibling;
+				} else {
+					//Lyndhurst doesn't have a photograph
+					//http://bccls.org/members/LYND.shtml
+
+					detailsSection = doc.DocumentNode.Descendants("a").First(a => a.GetAttributeValue("href", "") == "#googleMap").ParentNode;
+				}
+				FullTitle = detailsSection.Element("b").Element("font").FirstChild.CleanText();
+
+				Phone = detailsSection.Descendants("br")
+									  .Select(br => br.NextSibling.CleanText())
+									  .Select(t => phoneMatcher.Match(t))
+									  .First(m => m.Success)
+									  .Groups[1].Value;
+			}
+		}
+
+		#endregion
 
 		static readonly Regex countParser = new Regex(@": Item List \((\d+)\)");
 		public void DoSearch(string query, LoadingContext<BookSummary> context) {
@@ -33,8 +85,12 @@ namespace LibraryBrowser.Model {
 				var countString = serverInput.PreviousSibling.InnerText;
 				var count = int.Parse(countParser.Match(countString).Groups[1].Value);
 
-				context.Progress.Maximum = count;
-				ParseResultList(doc, context);
+				if (count == 0)
+					context.SetCompleted();
+				else {
+					context.Progress.Maximum = count;
+					ParseResultList(doc, context);
+				}
 			});
 		}
 
@@ -90,9 +146,9 @@ namespace LibraryBrowser.Model {
 				var details = tr.Elements("td").Last().Element("span");
 
 				//This is "Last, First"
-				Author = details.FirstChild.CleanTest().TrimEnd('.');
+				Author = details.FirstChild.CleanText().TrimEnd('.');
 
-				var authorTitle = details.Element("b").CleanTest().Split('/');
+				var authorTitle = details.Element("b").CleanText().Split('/');
 				Title = authorTitle[0].Trim();
 
 				//This is "First Last"
@@ -138,17 +194,17 @@ namespace LibraryBrowser.Model {
 		sealed class DetailsPageSummary : BookSummary {
 			public BookDetails Details { get; private set; }
 			public DetailsPageSummary(HtmlDocument doc) {
-				var infoTable = doc.DocumentNode.Descendants("table").First(t => t.Descendants("th").First().CleanTest() == "Author");
+				var infoTable = doc.DocumentNode.Descendants("table").First(t => t.Descendants("th").First().CleanText() == "Author");
 
 				var rows = infoTable.Elements("tr").ToList();
 
-				Author = rows[0].Element("td").CleanTest().TrimEnd('.');
-				Title = rows[1].Descendants("a").First().CleanTest()
+				Author = rows[0].Element("td").CleanText().TrimEnd('.');
+				Title = rows[1].Descendants("a").First().CleanText()
 							   .TrimEnd('/', ':').TrimEnd();
-				var publisher = rows[2].Element("td").CleanTest();
+				var publisher = rows[2].Element("td").CleanText();
 				Year = GetYear(publisher);
 
-				var isbnRow = rows.FirstOrDefault(tr => tr.Element("th").CleanTest() == "ISBN");
+				var isbnRow = rows.FirstOrDefault(tr => tr.Element("th").CleanText() == "ISBN");
 				if (isbnRow != null)
 					ISBN = numberFinder.Match(isbnRow.Element("td").InnerText).Captures[0].Value;
 
@@ -158,17 +214,26 @@ namespace LibraryBrowser.Model {
 			public override void GetDetails(Action<BookDetails> callback) { callback(Details); }
 		}
 
+		static readonly Regex detailsUrlGetter = new Regex(@"^javascript:var info = window.open\('([^'""]+)',");
 		static IEnumerable<BookLocation> ParseLocations(HtmlDocument doc) {
 			var libariesTable = doc.DocumentNode.Descendants("table").First(t => { var th = t.Descendants("th").FirstOrDefault(); return th != null && th.InnerText == "Library"; });
 
 			foreach (var tr in libariesTable.Elements("tr").Skip(1)) {
 				var cells = tr.Elements("td").ToList();
 				if (cells.Count != 4) continue;
+
+				//javascript:var info = window.open('http://www.bccls.org/members/MONT.shtml','','width=750,height=550,resizable,scrollbars')
+				var jsLink = cells[0].Descendants("a").First().GetAttributeValue("href", "");
+				var url = detailsUrlGetter.Match(jsLink).Groups[1].Value;
+
+				var name = cells[0].CleanText();
 				yield return new BookLocation(
-					library: cells[0].CleanTest(),
-					material: cells[1].CleanTest(),
-					identifier: cells[2].CleanTest(),
-					status: cells[3].CleanTest()
+					library: name,
+					material: cells[1].CleanText(),
+					identifier: cells[2].CleanText(),
+					status: cells[3].CleanText(),
+
+					detailGetter: () => GetLibrary(name, url)
 				);
 			}
 		}
