@@ -44,21 +44,22 @@ namespace LibraryBrowser {
 		}
 		public void OpenBook(Model.BookSummary book) {
 			var headerControl = new Controls.IconHeader { Image = Icons.Loading16, Text = book.Title + " by " + book.Author };
+			var detailsTask = book.GetDetails();
+
 			var tab = new TabItem {
 				Header = headerControl,
-				Content = new Controls.AnimatedImage {
-					Source = Icons.Loading32,
-					Stretch = Stretch.None
+				Content = new Controls.LoadingContentPresenter {
+					Content = detailsTask,
+					ContentTemplate = new DataTemplate { VisualTree = new FrameworkElementFactory(typeof(Views.BookDetailsView)) }
 				}
 			};
 
 			tabs.Items.Add(tab);
 			tab.IsSelected = true;
 
-			book.GetDetails(bd => Dispatcher.BeginInvoke(new Action(delegate {
-				tab.Content = new Views.BookDetailsView { DataContext = bd };
+			detailsTask.ContinueWith(t => Dispatcher.BeginInvoke(new Action(delegate {
 				headerControl.Image = Icons.Book16;
-				headerControl.Text = bd.Summary.Title + " by " + bd.Summary.Author;
+				headerControl.Text = t.Result.Summary.Title + " by " + t.Result.Summary.Author;
 			})));
 		}
 

@@ -164,27 +164,29 @@ namespace LibraryBrowser.Model {
 			}
 
 			readonly string sessionDetailsUrl;
-			public override void GetDetails(Action<BookDetails> callback) {
-				Http.RequestHtml(new Uri(baseUri, sessionDetailsUrl), doc => {
+			public override Task<BookDetails> GetDetails() {
+				return Http.HtmlTask(new Uri(baseUri, sessionDetailsUrl), doc => {
 					if (!doc.DocumentNode.Descendants("title").First().InnerText.StartsWith("Session has expired"))
-						callback(new DetailsPageSummary(doc).Details);
+						return new DetailsPageSummary(doc).Details;
+
 					else	//If the session timed out, do a search that will return the first book
-						GetFirstResult(ISBN ?? (Author + " " + Title), callback);
+						return GetFirstResult(ISBN ?? (Author + " " + Title)).Result;
 				});
 			}
 		}
 		#endregion
 
-		static void GetFirstResult(string query, Action<BookDetails> callback) {
-			Http.RequestHtml(GetSearchUrl(query), doc => {
+		static Task<BookDetails> GetFirstResult(string query) {
+			return Http.HtmlTask(new Uri(GetSearchUrl(query)), doc => {
 				var isResultPage = doc.DocumentNode.Descendants("title").First().InnerText.StartsWith("The Library Catalog : Item #");
 
 				if (isResultPage)	//Hopefully, the search only had one result, so it took us straight to a details page.
-					callback(new DetailsPageSummary(doc).Details);
+					return new DetailsPageSummary(doc).Details;
 				else {				//Get the details of the first result
 					var mainTable = doc.DocumentNode.FirstChild.Element("body").Element("center").Element("table");
 					var tr = mainTable.Elements("tr").First(n => n.Elements("th").Count() == 2);
-					new SearchResult(tr).GetDetails(callback);
+
+					return new SearchResult(tr).GetDetails().Result;
 				}
 			});
 		}
@@ -193,6 +195,7 @@ namespace LibraryBrowser.Model {
 		//http://web2.bccls.org/web2/tramp2.exe/do_keyword_search/log_in?servers=1home&setting_key=BCCLS&query=0061020710
 		sealed class DetailsPageSummary : BookSummary {
 			public BookDetails Details { get; private set; }
+
 			public DetailsPageSummary(HtmlDocument doc) {
 				var infoTable = doc.DocumentNode.Descendants("table").First(t => t.Descendants("th").First().CleanText() == "Author");
 
@@ -211,7 +214,7 @@ namespace LibraryBrowser.Model {
 				Details = new BookDetails(this, publisher, ParseLocations(doc));
 			}
 
-			public override void GetDetails(Action<BookDetails> callback) { callback(Details); }
+			public override Task<BookDetails> GetDetails() { return Task.Factory.StartNew(() => Details); }
 		}
 
 		static readonly Regex detailsUrlGetter = new Regex(@"^javascript:var info = window.open\('([^'""]+)',");

@@ -37,7 +37,7 @@ namespace LibraryBrowser.Model {
 		public int? Year { get; protected set; }
 		public string ISBN { get; protected set; }
 
-		public abstract void GetDetails(Action<BookDetails> callback);
+		public abstract Task<BookDetails> GetDetails();
 	}
 
 	public class BookDetails {

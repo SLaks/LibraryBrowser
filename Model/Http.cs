@@ -36,7 +36,7 @@ namespace LibraryBrowser.Model {
 			var request = (HttpWebRequest)WebRequest.Create(url);
 			request.UserAgent = UserAgent;
 
-			var task= Task.Factory.FromAsync(request.BeginGetResponse(null, null), result => {
+			var task = Task.Factory.FromAsync(request.BeginGetResponse(null, null), result => {
 				var doc = new HtmlDocument();
 
 				using (var response = request.EndGetResponse(result))
@@ -46,7 +46,6 @@ namespace LibraryBrowser.Model {
 
 				return callback(doc);
 			});
-			//task.Start();
 			return task;
 		}
 	}
