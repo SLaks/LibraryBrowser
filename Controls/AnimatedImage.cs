@@ -45,51 +45,45 @@ namespace LibraryBrowser.Controls {
 
 		#endregion
 
-		#region Protected interface
+
+		static BitmapDecoder GetDecoder(object value) {
+			var frame = value as BitmapFrame;
+			if (frame != null)
+				return frame.Decoder;
+
+			BitmapImage source = value as BitmapImage;
+			if (source != null) {
+				if (source.StreamSource != null)
+					return BitmapDecoder.Create(source.StreamSource, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
+				if (source.UriSource != null)
+					return BitmapDecoder.Create(source.UriSource, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
+			}
+			return null;
+		}
 
 		/// <summary> 
 		/// Provides derived classes an opportunity to handle changes to the Source property. 
 		/// </summary> 
 		protected virtual void OnSourceChanged(DependencyPropertyChangedEventArgs e) {
 			ClearAnimation();
-			BitmapImage source;
-			if (e.NewValue is Uri) {
-				source = new BitmapImage();
-				source.BeginInit();
-				source.UriSource = e.NewValue as Uri;
-				source.CacheOption = BitmapCacheOption.OnLoad;
-				source.EndInit();
-			} else if (e.NewValue is BitmapImage) {
-				source = e.NewValue as BitmapImage;
-			} else {
+
+			if (e.NewValue == null || e.NewValue == DependencyProperty.UnsetValue)
 				return;
-			}
-			BitmapDecoder decoder;
-			if (source.StreamSource != null) {
-				decoder = BitmapDecoder.Create(source.StreamSource, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
-			} else if (source.UriSource != null) {
-				decoder = BitmapDecoder.Create(source.UriSource, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
-			} else {
-				return;
-			}
-			if (decoder.Frames.Count == 1) {
+
+			var decoder = GetDecoder(e.NewValue);
+			if (decoder == null)
+				throw new InvalidOperationException(e.NewValue + " (" + e.NewValue.GetType() + ") is not an image");
+
+			if (decoder.Frames.Count == 1)
 				base.Source = decoder.Frames[0];
-				return;
+			else {
+				this.Frames = decoder.Frames;
+				PrepareAnimation();
 			}
-
-			this.Frames = decoder.Frames;
-
-			PrepareAnimation();
 		}
-
-		#endregion
-
-		#region Private properties
 
 		private Int32Animation Animation { get; set; }
 		private bool IsAnimationWorking { get; set; }
-
-		#endregion
 
 		#region Private methods
 
