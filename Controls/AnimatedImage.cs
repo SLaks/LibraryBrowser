@@ -25,24 +25,10 @@ namespace LibraryBrowser.Controls {
 
 		public ReadOnlyCollection<BitmapFrame> Frames { get; private set; }
 
-		/// <summary>
-		/// Get or set the repeatBehavior of the animation when source is gif format.
-		/// </summary>
-		public RepeatBehavior AnimationRepeatBehavior {
-			get { return (RepeatBehavior)GetValue(AnimationRepeatBehaviorProperty); }
-			set { SetValue(AnimationRepeatBehaviorProperty, value); }
-		}
-
 		public new ImageSource Source {
 			get { return (ImageSource)GetValue(SourceProperty); }
 			set { SetValue(SourceProperty, value); }
 		}
-
-		public Uri UriSource {
-			get { return (Uri)GetValue(UriSourceProperty); }
-			set { SetValue(UriSourceProperty, value); }
-		}
-
 		#endregion
 
 
@@ -52,18 +38,16 @@ namespace LibraryBrowser.Controls {
 				return frame.Decoder;
 
 			BitmapImage source = value as BitmapImage;
-			if (source != null) {
-				if (source.StreamSource != null)
-					return BitmapDecoder.Create(source.StreamSource, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
-				if (source.UriSource != null)
-					return BitmapDecoder.Create(source.UriSource, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
-			}
+			if (source == null)
+				return null;
+
+			if (source.StreamSource != null)
+				return BitmapDecoder.Create(source.StreamSource, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
+			if (source.UriSource != null)
+				return BitmapDecoder.Create(source.UriSource, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
 			return null;
 		}
 
-		/// <summary> 
-		/// Provides derived classes an opportunity to handle changes to the Source property. 
-		/// </summary> 
 		protected virtual void OnSourceChanged(DependencyPropertyChangedEventArgs e) {
 			ClearAnimation();
 
@@ -83,101 +67,54 @@ namespace LibraryBrowser.Controls {
 		}
 
 		private Int32Animation Animation { get; set; }
-		private bool IsAnimationWorking { get; set; }
 
 		#region Private methods
-
 		private void ClearAnimation() {
-			if (Animation != null) {
+			if (Animation != null)
 				BeginAnimation(FrameIndexProperty, null);
-			}
 
-			IsAnimationWorking = false;
 			Animation = null;
 			this.Frames = null;
 		}
 
 		private void PrepareAnimation() {
-			Animation =
-				new Int32Animation(
-					0,
-					this.Frames.Count - 1,
-					new Duration(
-						new TimeSpan(
-							0,
-							0,
-							0,
-							this.Frames.Count / 10,
-							(int)((this.Frames.Count / 10.0 - this.Frames.Count / 10) * 1000)))) {
-								RepeatBehavior = RepeatBehavior.Forever
-							};
+			Animation = new Int32Animation(0, this.Frames.Count - 1, new Duration(TimeSpan.FromMilliseconds(Frames.Count * 100))) {
+				RepeatBehavior = RepeatBehavior.Forever
+			};
 
 			base.Source = this.Frames[0];
 			BeginAnimation(FrameIndexProperty, Animation);
-			IsAnimationWorking = true;
 		}
 
-		private static void ChangingFrameIndex
-			(DependencyObject dp, DependencyPropertyChangedEventArgs e) {
+		private static void OnFrameIndexChanged(DependencyObject dp, DependencyPropertyChangedEventArgs e) {
 			AnimatedImage animatedImage = dp as AnimatedImage;
 
-			if (animatedImage == null || !animatedImage.IsAnimationWorking) {
+			if (animatedImage == null)
 				return;
-			}
 
 			int frameIndex = (int)e.NewValue;
 			((Image)animatedImage).Source = animatedImage.Frames[frameIndex];
-			animatedImage.InvalidateVisual();
+			//animatedImage.InvalidateVisual();
 		}
 
-		/// <summary> 
-		/// Handles changes to the Source property. 
-		/// </summary> 
-		private static void OnSourceChanged
-			(DependencyObject dp, DependencyPropertyChangedEventArgs e) {
+		private static void OnSourceChanged(DependencyObject dp, DependencyPropertyChangedEventArgs e) {
 			((AnimatedImage)dp).OnSourceChanged(e);
 		}
-
 		#endregion
 
 		#region Dependency Properties
-
 		public static readonly DependencyProperty FrameIndexProperty =
-			DependencyProperty.Register(
-				"FrameIndex",
-				typeof(int),
-				typeof(AnimatedImage),
-				new UIPropertyMetadata(0, ChangingFrameIndex));
+			DependencyProperty.Register("FrameIndex", typeof(int), typeof(AnimatedImage), new UIPropertyMetadata(0, OnFrameIndexChanged));
 
 		public new static readonly DependencyProperty SourceProperty =
-			DependencyProperty.Register(
-				"Source",
-				typeof(ImageSource),
-				typeof(AnimatedImage),
+			DependencyProperty.Register("Source", typeof(ImageSource), typeof(AnimatedImage),
 				new FrameworkPropertyMetadata(
 					null,
 					FrameworkPropertyMetadataOptions.AffectsRender |
 					FrameworkPropertyMetadataOptions.AffectsMeasure,
-					OnSourceChanged));
-
-		public static readonly DependencyProperty AnimationRepeatBehaviorProperty =
-			DependencyProperty.Register(
-			"AnimationRepeatBehavior",
-			typeof(RepeatBehavior),
-			typeof(AnimatedImage),
-			new PropertyMetadata(null));
-
-		public static readonly DependencyProperty UriSourceProperty =
-			DependencyProperty.Register(
-			"UriSource",
-			typeof(Uri),
-			typeof(AnimatedImage),
-					new FrameworkPropertyMetadata(
-					null,
-					FrameworkPropertyMetadataOptions.AffectsRender |
-					FrameworkPropertyMetadataOptions.AffectsMeasure,
-					OnSourceChanged));
-
+					OnSourceChanged
+				)
+			);
 		#endregion
 	}
 }
